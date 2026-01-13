@@ -5,11 +5,17 @@ from typing import Optional
 import streamlit as st
 
 # Use cloud-compatible TTS engine for Streamlit Cloud
+# pyttsx3 doesn't work on Streamlit Cloud, so we MUST use gTTS
 try:
+    # Import gTTS to verify it's available
+    import gtts
+    # Use cloud engine - this works on Streamlit Cloud
     from tts_engine_cloud import list_voices, synthesize_to_file
-except ImportError:
-    # Fallback to local engine if cloud engine not available
-    from tts_engine import list_voices, synthesize_to_file
+    USE_CLOUD_ENGINE = True
+except ImportError as e:
+    # If gTTS is not available, show error (should not happen on Streamlit Cloud)
+    st.error(f"❌ gTTS not available: {e}. Please ensure gtts is installed.")
+    st.stop()
 
 from validation import validate_text
 
@@ -60,7 +66,9 @@ def main() -> None:
             # Use a temporary file, then load into memory for playback
             tmp_dir = "generated_audio"
             os.makedirs(tmp_dir, exist_ok=True)
-            file_path = os.path.join(tmp_dir, "speech.wav")
+            # gTTS generates MP3 files, not WAV
+            file_ext = "mp3" if USE_CLOUD_ENGINE else "wav"
+            file_path = os.path.join(tmp_dir, f"speech.{file_ext}")
 
             synthesize_to_file(
                 text=text,
@@ -73,7 +81,9 @@ def main() -> None:
             with open(file_path, "rb") as f:
                 audio_bytes = f.read()
 
-            audio_placeholder.audio(audio_bytes, format="audio/wav")
+            # Use correct audio format based on engine
+            audio_format = "audio/mp3" if USE_CLOUD_ENGINE else "audio/wav"
+            audio_placeholder.audio(audio_bytes, format=audio_format)
 
 
 if __name__ == "__main__":
