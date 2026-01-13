@@ -4,7 +4,13 @@ from typing import Optional
 
 import streamlit as st
 
-from tts_engine import list_voices, synthesize_to_file
+# Use cloud-compatible TTS engine for Streamlit Cloud
+try:
+    from tts_engine_cloud import list_voices, synthesize_to_file
+except ImportError:
+    # Fallback to local engine if cloud engine not available
+    from tts_engine import list_voices, synthesize_to_file
+
 from validation import validate_text
 
 
@@ -29,8 +35,13 @@ def main() -> None:
         voice_id_map[label] = v["id"]
 
     selected_voice_label = st.sidebar.selectbox("Voice", voice_options, index=0)
-    rate = st.sidebar.slider("Rate (words per minute)", min_value=80, max_value=260, value=180, step=10)
-    volume = st.sidebar.slider("Volume", min_value=0.1, max_value=1.0, value=1.0, step=0.05)
+    
+    # Note: gTTS doesn't support rate/volume control, but we'll keep the UI
+    # for consistency (values will be ignored in cloud version)
+    rate = st.sidebar.slider("Rate (words per minute)", min_value=80, max_value=260, value=180, step=10, 
+                             help="Note: Rate control not available with cloud TTS")
+    volume = st.sidebar.slider("Volume", min_value=0.1, max_value=1.0, value=1.0, step=0.05,
+                               help="Note: Volume control not available with cloud TTS")
 
     text = st.text_area("Enter text to speak", height=200)
 
